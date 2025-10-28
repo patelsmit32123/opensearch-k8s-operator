@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/Opster/opensearch-k8s-operator/opensearch-operator/pkg/patch"
 	"github.com/Opster/opensearch-k8s-operator/opensearch-operator/pkg/reconcilers/k8s"
 	"github.com/Opster/opensearch-k8s-operator/opensearch-operator/pkg/reconcilers/util"
 	policyv1 "k8s.io/api/policy/v1"
@@ -12,8 +13,7 @@ import (
 	opsterv1 "github.com/Opster/opensearch-k8s-operator/opensearch-operator/api/v1"
 	"github.com/Opster/opensearch-k8s-operator/opensearch-operator/pkg/builders"
 	"github.com/Opster/opensearch-k8s-operator/opensearch-operator/pkg/helpers"
-	"github.com/cisco-open/k8s-objectmatcher/patch"
-	"github.com/cisco-open/operator-tools/pkg/reconciler"
+	"github.com/Opster/opensearch-k8s-operator/opensearch-operator/pkg/reconciler"
 	"github.com/go-logr/logr"
 	"github.com/samber/lo"
 	appsv1 "k8s.io/api/apps/v1"
@@ -485,8 +485,10 @@ func (r *ClusterReconciler) deleteSTSWithOrphan(existing *appsv1.StatefulSet) er
 
 // UpdateClusterStatus updates the cluster health and number of available nodes in the CR status
 func (r *ClusterReconciler) UpdateClusterStatus() error {
-	health := util.GetClusterHealth(r.client, r.ctx, r.instance, r.logger)
+	health, healthResponse := util.GetClusterHealth(r.client, r.ctx, r.instance, r.logger)
 	availableNodes := util.GetAvailableOpenSearchNodes(r.client, r.ctx, r.instance, r.logger)
+
+	helpers.UpdateClusterInfo(r.instance, health, healthResponse)
 
 	return r.client.UpdateOpenSearchClusterStatus(client.ObjectKeyFromObject(r.instance), func(instance *opsterv1.OpenSearchCluster) {
 		instance.Status.Health = health
